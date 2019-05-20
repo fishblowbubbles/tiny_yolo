@@ -23,53 +23,33 @@ class Component(nn.Module):
             return idx
         if self.batch_norm:
             cv, bn, _ = self.modules
-            idx = self.with_bn(cv, bn, weights, idx)
+            idx = self._with_bn(cv, bn, weights, idx)
         else:
             cv = self.modules[0]
-            idx = self.without_bn(cv, weights, idx)
+            idx = self._without_bn(cv, weights, idx)
         return idx
 
-    def with_bn(self, cv, bn, weights, idx):
-        # BATCHNORM
-        n_bias = bn.bias.numel()
-        # bias
-        b = torch.from_numpy(weights[idx:idx + n_bias]).view_as(bn.bias)
-        bn.bias.data.copy_(b)
-        idx += n_bias
-        # weight
-        W = torch.from_numpy(weights[idx:idx + n_bias]).view_as(bn.weight)
-        bn.weight.data.copy_(W)
-        idx += n_bias
-        # running mean
-        rm = torch.from_numpy(weights[idx:idx + n_bias]).view_as(
-            bn.running_mean)
-        bn.running_mean.data.copy_(rm)
-        idx += n_bias
-        # running variance
-        rv = torch.from_numpy(weights[idx:idx + n_bias]).view_as(
-            bn.running_var)
-        bn.running_var.data.copy_(rv)
-        idx += n_bias
-        # CONVOLUTIONAL
-        n_weight = cv.weight.numel()
-        # weight
-        W = torch.from_numpy(weights[idx:idx + n_weight]).view_as(cv.weight)
-        cv.weight.data.copy_(W)
-        idx += n_weight
+    def _with_bn(self, cv, bn, weights, idx):
+        n_bias, n_weight = bn.bias.numel(), cv.weight.numel()
+        # batchnorm
+        idx = self._cp_data(target=bn.bias, weights=weights, n_elem=n_bias, idx=idx)
+        idx = self._cp_data(target=bn.weight, weights=weights, n_elem=n_bias, idx=idx)
+        idx = self._cp_data(target=bn.running_mean, weights=weights, n_elem=n_bias, idx=idx)
+        idx = self._cp_data(target=bn.running_var, weights=weights, n_elem=n_bias, idx=idx)
+        # convolutional
+        idx = self._cp_data(target=cv.weight, weights=weights, n_elem=n_weight, idx=idx)
         return idx
 
-    def without_bn(self, cv, weights, idx):
-        # CONVOLUTIONAL
-        n_bias = cv.bias.numel()
-        n_weight = cv.weight.numel()
-        # bias
-        b = torch.from_numpy(weights[idx:idx + n_bias]).view_as(cv.bias)
-        cv.bias.data.copy_(b)
-        idx += n_bias
-        # weight
-        W = torch.from_numpy(weights[idx:idx + n_weight]).view_as(cv.weight)
-        cv.weight.data.copy_(W)
-        idx += n_weight
+    def _without_bn(self, cv, weights, idx):
+        n_bias, n_weight = cv.bias.numel(), cv.weight.numel()
+        idx = self._cp_data(target=cv.bias, weights=weights, n_elem=n_bias, idx=idx)
+        idx = self._cp_data(target=cv.weight, weights=weights, n_elem=n_weight, idx=idx)
+        return idx
+    
+    def _cp_data(self, target, weights, n_elem, idx):
+        data = torch.from_numpy(weights[idx: idx + n_elem]).view_as(target)
+        target.data.copy_(data)
+        idx += n_elem
         return idx
 
 
@@ -87,232 +67,212 @@ class Tiny(nn.Module):
         """
         # [ convolutional ]
         cv_0 = Component(op="convolutional", batch_norm=True)
-        cv_0.add_module(
-            nn.Conv2d(
-                in_channels=3,
-                out_channels=16,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_0.add_module(
-            nn.BatchNorm2d(num_features=16, eps=1e-05, momentum=0.9))
+        cv_0.add_module(nn.Conv2d(in_channels=3,
+                                  out_channels=16,
+                                  kernel_size=(3, 3),
+                                  stride=(1, 1),
+                                  padding=(1, 1),
+                                  bias=False))
+        cv_0.add_module(nn.BatchNorm2d(num_features=16, 
+                                       eps=1e-05, 
+                                       momentum=0.9))
         cv_0.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_0)
         # [ maxpool ]
         mp_1 = Component("maxpool")
-        mp_1.add_module(nn.MaxPool2d(kernel_size=2, stride=2))
+        mp_1.add_module(nn.MaxPool2d(kernel_size=2, 
+                                     stride=2))
         self.components.append(mp_1)
         # [ convolutional ]
         cv_2 = Component("convolutional", batch_norm=True)
-        cv_2.add_module(
-            nn.Conv2d(
-                in_channels=16,
-                out_channels=32,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_2.add_module(
-            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.9))
+        cv_2.add_module(nn.Conv2d(in_channels=16,
+                                  out_channels=32,
+                                  kernel_size=(3, 3),
+                                  stride=(1, 1),
+                                  padding=(1, 1),
+                                  bias=False))
+        cv_2.add_module(nn.BatchNorm2d(num_features=32, 
+                                       eps=1e-05, 
+                                       momentum=0.9))
         cv_2.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_2)
         # [ maxpool ]
         mp_3 = Component("maxpool")
-        mp_3.add_module(nn.MaxPool2d(kernel_size=2, stride=2))
+        mp_3.add_module(nn.MaxPool2d(kernel_size=2, 
+                                     stride=2))
         self.components.append(mp_3)
         # [ convolutional ]
         cv_4 = Component("convolutional", batch_norm=True)
-        cv_4.add_module(
-            nn.Conv2d(
-                in_channels=32,
-                out_channels=64,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_4.add_module(
-            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.9))
+        cv_4.add_module(nn.Conv2d(in_channels=32,
+                                  out_channels=64,
+                                  kernel_size=(3, 3),
+                                  stride=(1, 1),
+                                  padding=(1, 1),
+                                  bias=False))
+        cv_4.add_module(nn.BatchNorm2d(num_features=64, 
+                                       eps=1e-05, 
+                                       momentum=0.9))
         cv_4.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_4)
         # [ maxpool ]
         mp_5 = Component("maxpool")
-        mp_5.add_module(nn.MaxPool2d(kernel_size=2, stride=2))
+        mp_5.add_module(nn.MaxPool2d(kernel_size=2, 
+                                     stride=2))
         self.components.append(mp_5)
         # [ convolutional ]
         cv_6 = Component("convolutional", batch_norm=True)
-        cv_6.add_module(
-            nn.Conv2d(
-                in_channels=64,
-                out_channels=128,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_6.add_module(
-            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.9))
+        cv_6.add_module(nn.Conv2d(in_channels=64,
+                                  out_channels=128,
+                                  kernel_size=(3, 3),
+                                  stride=(1, 1),
+                                  padding=(1, 1),
+                                  bias=False))
+        cv_6.add_module(nn.BatchNorm2d(num_features=128, 
+                                       eps=1e-05, 
+                                       momentum=0.9))
         cv_6.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_6)
         # [ maxpool ]
         mp_7 = Component("maxpool")
-        mp_7.add_module(nn.MaxPool2d(kernel_size=2, stride=2))
+        mp_7.add_module(nn.MaxPool2d(kernel_size=2, 
+                                     stride=2))
         self.components.append(mp_7)
         # [ convolutional ]
         cv_8 = Component("convolutional", batch_norm=True)
-        cv_8.add_module(
-            nn.Conv2d(
-                in_channels=128,
-                out_channels=256,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_8.add_module(
-            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.9))
+        cv_8.add_module(nn.Conv2d(in_channels=128,
+                                  out_channels=256,
+                                  kernel_size=(3, 3),
+                                  stride=(1, 1),
+                                  padding=(1, 1),
+                                  bias=False))
+        cv_8.add_module(nn.BatchNorm2d(num_features=256, 
+                                       eps=1e-05, 
+                                       momentum=0.9))
         cv_8.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_8)
         # [ maxpool ]
         mp_9 = Component("maxpool")
-        mp_9.add_module(nn.MaxPool2d(kernel_size=2, stride=2))
+        mp_9.add_module(nn.MaxPool2d(kernel_size=2, 
+                                     stride=2))
         self.components.append(mp_9)
         # [ convolutional ]
         cv_10 = Component("convolutional", batch_norm=True)
-        cv_10.add_module(
-            nn.Conv2d(
-                in_channels=256,
-                out_channels=512,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_10.add_module(
-            nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.9))
+        cv_10.add_module(nn.Conv2d(in_channels=256,
+                                   out_channels=512,
+                                   kernel_size=(3, 3),
+                                   stride=(1, 1),
+                                   padding=(1, 1),
+                                   bias=False))
+        cv_10.add_module(nn.BatchNorm2d(num_features=512, 
+                                        eps=1e-05, 
+                                        momentum=0.9))
         cv_10.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_10)
         # [ maxpool ]
         mp_11 = Component("maxpool")
-        mp_11.add_module(nn.ZeroPad2d((0, 1, 0, 1)))
-        mp_11.add_module(nn.MaxPool2d(kernel_size=2, stride=1))
+        mp_11.add_module(nn.ZeroPad2d(padding=(0, 1, 0, 1)))
+        mp_11.add_module(nn.MaxPool2d(kernel_size=2, 
+                                      stride=1))
         self.components.append(mp_11)
         # [ convolutional ]
         cv_12 = Component("convolutional", batch_norm=True)
-        cv_12.add_module(
-            nn.Conv2d(
-                in_channels=512,
-                out_channels=1024,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_12.add_module(
-            nn.BatchNorm2d(num_features=1024, eps=1e-05, momentum=0.9))
+        cv_12.add_module(nn.Conv2d(in_channels=512,
+                                   out_channels=1024,
+                                   kernel_size=(3, 3),
+                                   stride=(1, 1),
+                                   padding=(1, 1),
+                                   bias=False))
+        cv_12.add_module(nn.BatchNorm2d(num_features=1024, 
+                                        eps=1e-05, 
+                                        momentum=0.9))
         cv_12.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_12)
         # [ convolutional ]
         cv_13 = Component("convolutional", batch_norm=True)
-        cv_13.add_module(
-            nn.Conv2d(
-                in_channels=1024,
-                out_channels=256,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-                bias=False,
-            ))
-        cv_13.add_module(
-            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.9))
+        cv_13.add_module(nn.Conv2d(in_channels=1024,
+                                   out_channels=256,
+                                   kernel_size=(1, 1),
+                                   stride=(1, 1),
+                                   bias=False))
+        cv_13.add_module(nn.BatchNorm2d(num_features=256, 
+                                        eps=1e-05, 
+                                        momentum=0.9))
         cv_13.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_13)
         # [ convolutional ]
         cv_14 = Component("convolutional", batch_norm=True)
-        cv_14.add_module(
-            nn.Conv2d(
-                in_channels=256,
-                out_channels=512,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_14.add_module(
-            nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.9))
+        cv_14.add_module(nn.Conv2d(in_channels=256,
+                                   out_channels=512,
+                                   kernel_size=(3, 3),
+                                   stride=(1, 1),
+                                   padding=(1, 1),
+                                   bias=False))
+        cv_14.add_module(nn.BatchNorm2d(num_features=512, 
+                                        eps=1e-05, 
+                                        momentum=0.9))
         cv_14.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_14)
         # [ convolutional ]
         cv_15 = Component("convolutional")
-        cv_15.add_module(
-            nn.Conv2d(
-                in_channels=512,
-                out_channels=self.n_out,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-            ))
+        cv_15.add_module(nn.Conv2d(in_channels=512,
+                                   out_channels=self.n_out,
+                                   kernel_size=(1, 1),
+                                   stride=(1, 1)))
         self.components.append(cv_15)
         # [ yolo ]
         yl_16 = Component("yolo")
-        yl_16.add_module(
-            YOLO([(81, 82), (135, 169), (344, 319)], self.n_classes))
+        yl_16.add_module(YOLO(anchors=[(81, 82), (135, 169), (344, 319)], 
+                              n_classes=self.n_classes))
         self.components.append(yl_16)
         # [ route ]
         rt_17 = Component("route")
-        rt_17.add_module(Route([-4]))
+        rt_17.add_module(Route(layers=[-4]))
         self.components.append(rt_17)
         # [ convolutional ]
         cv_18 = Component("convolutional", batch_norm=True)
-        cv_18.add_module(
-            nn.Conv2d(
-                in_channels=256,
-                out_channels=128,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-                bias=False,
-            ))
-        cv_18.add_module(
-            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.9))
+        cv_18.add_module(nn.Conv2d(in_channels=256,
+                                   out_channels=128,
+                                   kernel_size=(1, 1),
+                                   stride=(1, 1),
+                                   bias=False))
+        cv_18.add_module(nn.BatchNorm2d(num_features=128, 
+                                        eps=1e-05, 
+                                        momentum=0.9))
         cv_18.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_18)
         # [ upsample ]
         up_19 = Component("upsample")
-        up_19.add_module(Upsample(scale_factor=2.0, mode="nearest"))
+        up_19.add_module(Upsample(scale_factor=2.0, 
+                                  mode="nearest"))
         self.components.append(up_19)
         # [ route ]
         rt_20 = Component("route")
-        rt_20.add_module(Route([-1, 8]))
+        rt_20.add_module(Route(layers=[-1, 8]))
         self.components.append(rt_20)
         # [ convolutional ]
         cv_21 = Component("convolutional", batch_norm=True)
-        cv_21.add_module(
-            nn.Conv2d(
-                in_channels=384,
-                out_channels=256,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-                bias=False,
-            ))
-        cv_21.add_module(
-            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.9))
+        cv_21.add_module(nn.Conv2d(in_channels=384,
+                                   out_channels=256,
+                                   kernel_size=(3, 3),
+                                   stride=(1, 1),
+                                   padding=(1, 1),
+                                   bias=False))
+        cv_21.add_module(nn.BatchNorm2d(num_features=256, 
+                                        eps=1e-05, 
+                                        momentum=0.9))
         cv_21.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_21)
         # [ convolutional ]
         cv_22 = Component("convolutional")
-        cv_22.add_module(
-            nn.Conv2d(
-                in_channels=256,
-                out_channels=self.n_out,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-            ))
+        cv_22.add_module(nn.Conv2d(in_channels=256,
+                                   out_channels=self.n_out,
+                                   kernel_size=(1, 1),
+                                   stride=(1, 1)))
         self.components.append(cv_22)
         # [ yolo ]
         yl_23 = Component("yolo")
-        yl_23.add_module(YOLO([(10, 14), (23, 27), (37, 58)], self.n_classes))
+        yl_23.add_module(YOLO(anchors=[(10, 14), (23, 27), (37, 58)], 
+                              n_classes=self.n_classes))
         self.components.append(yl_23)
 
     def forward(self, x):
@@ -330,7 +290,6 @@ class Tiny(nn.Module):
         with open(path, "rb") as file:
             headers = np.fromfile(file, dtype=np.int32, count=5)
             weights = np.fromfile(file, dtype=np.float32)
-            file.close()
         if not partial:
             stop_at = len(self.components)
         idx = 0

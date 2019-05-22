@@ -1,16 +1,15 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 class YOLO(nn.Module):
-    def __init__(self, anchors, n_classes, img_size=(416, 416)):
+    def __init__(self, n_classes, img_size, anchors):
         super(YOLO, self).__init__()
-        self.anchors = anchors
         self.n_classes = n_classes
         self.img_size = img_size
-
+        self.anchors = anchors
+        
     def forward(self, x):
         """
         Perform bounding box regression.
@@ -39,8 +38,8 @@ class YOLO(nn.Module):
         output[..., 4] = torch.sigmoid(proposal[..., 4])
         # class predictions
         output[..., 5:] = torch.sigmoid(proposal[..., 5:])
-        output = output.view(batch_size,
-                             len(self.anchors) * grid_h * grid_w,
+        output = output.view(batch_size, 
+                             len(self.anchors) * grid_h * grid_w, 
                              self.n_classes + 5)
         return output
 

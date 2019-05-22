@@ -54,12 +54,11 @@ class Component(nn.Module):
 
 
 class Tiny(nn.Module):
-    def __init__(self, n_classes, hyperparams, threshold=0.5):
+    def __init__(self, n_classes, img_size):
         super(Tiny, self).__init__()
-        self.threshold = threshold
         self.n_classes = n_classes
         self.n_out = (n_classes + 5) * 3
-        self.hyperparams = hyperparams
+        self.img_size = img_size
         self.components = []
         """
         WARNING! MONTROSITY AHEAD!
@@ -221,8 +220,9 @@ class Tiny(nn.Module):
         self.components.append(cv_15)
         # [ yolo ]
         yl_16 = Component("yolo")
-        yl_16.add_module(YOLO(anchors=[(81, 82), (135, 169), (344, 319)], 
-                              n_classes=self.n_classes))
+        yl_16.add_module(YOLO(n_classes=self.n_classes,
+                              img_size = self.img_size,
+                              anchors=[(81, 82), (135, 169), (344, 319)]))
         self.components.append(yl_16)
         # [ route ]
         rt_17 = Component("route")
@@ -271,8 +271,9 @@ class Tiny(nn.Module):
         self.components.append(cv_22)
         # [ yolo ]
         yl_23 = Component("yolo")
-        yl_23.add_module(YOLO(anchors=[(10, 14), (23, 27), (37, 58)], 
-                              n_classes=self.n_classes))
+        yl_23.add_module(YOLO(n_classes=self.n_classes,
+                              img_size=self.img_size,
+                              anchors=[(10, 14), (23, 27), (37, 58)]))
         self.components.append(yl_23)
 
     def forward(self, x):

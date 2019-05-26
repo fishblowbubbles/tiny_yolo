@@ -10,7 +10,7 @@ def timeit(f):
         start = time.time()
         output = f(*args, **kwargs)
         elapsed = time.time() - start
-        print("{} executed in {:.2f} seconds"
+        print("Execution Time of '{}': {:.2f} seconds"
               .format(f.__name__, elapsed))
         return output
     return timer

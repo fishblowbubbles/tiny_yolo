@@ -275,7 +275,7 @@ class Tiny(nn.Module):
                               img_size=self.img_size,
                               anchors=[(10, 14), (23, 27), (37, 58)]))
         self.components.append(yl_23)
-
+    
     def forward(self, x):
         outputs = []
         for component in self.components:
@@ -288,6 +288,7 @@ class Tiny(nn.Module):
         return x
 
     def load_weights(self, path, partial=False, stop_at=None):
+        print("Loading weights ...", end= " ")
         with open(path, "rb") as file:
             headers = np.fromfile(file, dtype=np.int32, count=5)
             weights = np.fromfile(file, dtype=np.float32)
@@ -298,7 +299,8 @@ class Tiny(nn.Module):
             idx = self.components[i].load_weights(weights, idx)
         try:
             assert idx == len(weights)
+            print("COMPLETE")
         except AssertionError:
-            print("NO. OF WEIGHTS DO NOT MATCH!")
+            print("NO. OF WEIGHTS DO NOT MATCH")
             print("No. of Pretrained Weights = {}".format(len(weights)))
             print("No. of Loaded Weights = {}".format(idx))

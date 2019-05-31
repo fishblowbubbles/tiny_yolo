@@ -10,30 +10,16 @@ def timeit(f):
         start = time.time()
         output = f(*args, **kwargs)
         elapsed = time.time() - start
-        print("Execution Time of '{}': {:.2f} seconds"
-              .format(f.__name__, elapsed))
+        print("Execution Time of '{}': {:.2f} seconds".format(
+            f.__name__, elapsed))
         return output
+
     return timer
 
 
 def read_img(path):
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, (416, 416))
-    return img
-
-
-def show_img(path):
-    img = read_img(path)
-    img = np.array(img)
-    plt.imshow(img)
-
-    
-def load_img(path):
-    img = read_img(path)
-    img = img.transpose((2, 0, 1))
-    img = img[np.newaxis, ...] / 255.0
-    img = torch.from_numpy(img).float()
     return img
 
 
@@ -46,6 +32,14 @@ def load_names(path):
         for line in lines:
             names.append(line)
     return names
+
+
+def to_yolo_input(img):
+    img = cv2.resize(img, (416, 416))
+    img = img.transpose((2, 0, 1))
+    img = img[np.newaxis, ...] / 255.0
+    img = torch.from_numpy(img).float()
+    return img
 
 
 def xywh2xyxy(x):
@@ -72,23 +66,25 @@ def iou(a, b):
     """
     x1, y1 = torch.max(a[..., 0], b[..., 0]), torch.max(a[..., 1], b[..., 1])
     x2, y2 = torch.min(a[..., 2], b[..., 2]), torch.min(a[..., 3], b[..., 3])
-    intersection = torch.clamp(x2 - x1 + 1, min=0) * torch.clamp(y2 - y1 + 1, min=0) 
+    intersection = torch.clamp(x2 - x1 + 1, min=0) * torch.clamp(y2 - y1 + 1,
+                                                                 min=0)
     union = area(a) + area(b) - intersection
     iou = intersection / union
     return iou
 
 
 def filter_nm(detections, overlap_threshold):
-    coordinates, confidence, indices = (detections[:, :4], 
-                                        detections[:, 4], 
+    coordinates, confidence, indices = (detections[:, :4], detections[:, 4],
                                         detections[:, 6])
     # locate detections with overlapping bounding boxes and the same class prediction
-    overlap = iou(detections[0, :4].unsqueeze(dim=0), coordinates) >= overlap_threshold
+    overlap = iou(detections[0, :4].unsqueeze(dim=0),
+                  coordinates) >= overlap_threshold
     match = detections[0, 6] == indices
     to_remove = overlap & match
     # adjust final bounding box size according to probabilities of non-maximum bounding boxes
     rescale_by = detections[to_remove, 4].unsqueeze(dim=1)
-    detections[0, :4] = (rescale_by * detections[to_remove, :4]).sum(dim=0) / rescale_by.sum()
+    detections[0, :4] = (rescale_by * detections[to_remove, :4]).sum(
+        dim=0) / rescale_by.sum()
     # save final detection
     bbox = detections[0]
     # remove non-maximum detections
@@ -107,15 +103,17 @@ def nms(x, confidence_threshold, overlap_threshold):
         detections = detections[detections[:, 4] >= confidence_threshold]
         if not detections.shape[0] > 0: continue
         # remove non-maximum class predictions
-        coordinates, confidence, class_predictions = (detections[:, :4], 
-                                                      detections[:, 4:5], 
+        coordinates, confidence, class_predictions = (detections[:, :4],
+                                                      detections[:, 4:5],
                                                       detections[:, 5:])
         probabilities, indices = class_predictions.max(dim=1, keepdim=True)
         # sort by detection score in descending order
         scores = probabilities * confidence
         detections = detections[probabilities.argsort(descending=True)]
         # reconstruct tensor
-        detections = torch.cat((coordinates, confidence, probabilities.float(), indices.float()), dim=1)
+        detections = torch.cat(
+            (coordinates, confidence, probabilities.float(), indices.float()),
+            dim=1)
         # extract and save maximum detections (adjusted bounding boxes)
         bboxes = []
         while detections.shape[0] > 0:

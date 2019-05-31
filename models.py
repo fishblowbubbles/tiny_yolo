@@ -45,7 +45,7 @@ class Component(nn.Module):
         idx = self._cp_data(target=cv.bias, weights=weights, n_elem=n_bias, idx=idx)
         idx = self._cp_data(target=cv.weight, weights=weights, n_elem=n_weight, idx=idx)
         return idx
-    
+
     def _cp_data(self, target, weights, n_elem, idx):
         data = torch.from_numpy(weights[idx: idx + n_elem]).view_as(target)
         target.data.copy_(data)
@@ -54,7 +54,7 @@ class Component(nn.Module):
 
 
 class Tiny(nn.Module):
-    def __init__(self, n_classes, img_size):
+    def __init__(self, n_classes, img_size=(416, 416)):
         super(Tiny, self).__init__()
         self.n_classes = n_classes
         self.n_out = (n_classes + 5) * 3
@@ -72,14 +72,14 @@ class Tiny(nn.Module):
                                   stride=(1, 1),
                                   padding=(1, 1),
                                   bias=False))
-        cv_0.add_module(nn.BatchNorm2d(num_features=16, 
-                                       eps=1e-05, 
+        cv_0.add_module(nn.BatchNorm2d(num_features=16,
+                                       eps=1e-05,
                                        momentum=0.9))
         cv_0.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_0)
         # [ maxpool ]
         mp_1 = Component("maxpool")
-        mp_1.add_module(nn.MaxPool2d(kernel_size=2, 
+        mp_1.add_module(nn.MaxPool2d(kernel_size=2,
                                      stride=2))
         self.components.append(mp_1)
         # [ convolutional ]
@@ -90,14 +90,14 @@ class Tiny(nn.Module):
                                   stride=(1, 1),
                                   padding=(1, 1),
                                   bias=False))
-        cv_2.add_module(nn.BatchNorm2d(num_features=32, 
-                                       eps=1e-05, 
+        cv_2.add_module(nn.BatchNorm2d(num_features=32,
+                                       eps=1e-05,
                                        momentum=0.9))
         cv_2.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_2)
         # [ maxpool ]
         mp_3 = Component("maxpool")
-        mp_3.add_module(nn.MaxPool2d(kernel_size=2, 
+        mp_3.add_module(nn.MaxPool2d(kernel_size=2,
                                      stride=2))
         self.components.append(mp_3)
         # [ convolutional ]
@@ -108,14 +108,14 @@ class Tiny(nn.Module):
                                   stride=(1, 1),
                                   padding=(1, 1),
                                   bias=False))
-        cv_4.add_module(nn.BatchNorm2d(num_features=64, 
-                                       eps=1e-05, 
+        cv_4.add_module(nn.BatchNorm2d(num_features=64,
+                                       eps=1e-05,
                                        momentum=0.9))
         cv_4.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_4)
         # [ maxpool ]
         mp_5 = Component("maxpool")
-        mp_5.add_module(nn.MaxPool2d(kernel_size=2, 
+        mp_5.add_module(nn.MaxPool2d(kernel_size=2,
                                      stride=2))
         self.components.append(mp_5)
         # [ convolutional ]
@@ -126,14 +126,14 @@ class Tiny(nn.Module):
                                   stride=(1, 1),
                                   padding=(1, 1),
                                   bias=False))
-        cv_6.add_module(nn.BatchNorm2d(num_features=128, 
-                                       eps=1e-05, 
+        cv_6.add_module(nn.BatchNorm2d(num_features=128,
+                                       eps=1e-05,
                                        momentum=0.9))
         cv_6.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_6)
         # [ maxpool ]
         mp_7 = Component("maxpool")
-        mp_7.add_module(nn.MaxPool2d(kernel_size=2, 
+        mp_7.add_module(nn.MaxPool2d(kernel_size=2,
                                      stride=2))
         self.components.append(mp_7)
         # [ convolutional ]
@@ -144,14 +144,14 @@ class Tiny(nn.Module):
                                   stride=(1, 1),
                                   padding=(1, 1),
                                   bias=False))
-        cv_8.add_module(nn.BatchNorm2d(num_features=256, 
-                                       eps=1e-05, 
+        cv_8.add_module(nn.BatchNorm2d(num_features=256,
+                                       eps=1e-05,
                                        momentum=0.9))
         cv_8.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_8)
         # [ maxpool ]
         mp_9 = Component("maxpool")
-        mp_9.add_module(nn.MaxPool2d(kernel_size=2, 
+        mp_9.add_module(nn.MaxPool2d(kernel_size=2,
                                      stride=2))
         self.components.append(mp_9)
         # [ convolutional ]
@@ -162,15 +162,15 @@ class Tiny(nn.Module):
                                    stride=(1, 1),
                                    padding=(1, 1),
                                    bias=False))
-        cv_10.add_module(nn.BatchNorm2d(num_features=512, 
-                                        eps=1e-05, 
+        cv_10.add_module(nn.BatchNorm2d(num_features=512,
+                                        eps=1e-05,
                                         momentum=0.9))
         cv_10.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_10)
         # [ maxpool ]
         mp_11 = Component("maxpool")
         mp_11.add_module(nn.ZeroPad2d(padding=(0, 1, 0, 1)))
-        mp_11.add_module(nn.MaxPool2d(kernel_size=2, 
+        mp_11.add_module(nn.MaxPool2d(kernel_size=2,
                                       stride=1))
         self.components.append(mp_11)
         # [ convolutional ]
@@ -181,8 +181,8 @@ class Tiny(nn.Module):
                                    stride=(1, 1),
                                    padding=(1, 1),
                                    bias=False))
-        cv_12.add_module(nn.BatchNorm2d(num_features=1024, 
-                                        eps=1e-05, 
+        cv_12.add_module(nn.BatchNorm2d(num_features=1024,
+                                        eps=1e-05,
                                         momentum=0.9))
         cv_12.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_12)
@@ -193,8 +193,8 @@ class Tiny(nn.Module):
                                    kernel_size=(1, 1),
                                    stride=(1, 1),
                                    bias=False))
-        cv_13.add_module(nn.BatchNorm2d(num_features=256, 
-                                        eps=1e-05, 
+        cv_13.add_module(nn.BatchNorm2d(num_features=256,
+                                        eps=1e-05,
                                         momentum=0.9))
         cv_13.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_13)
@@ -206,8 +206,8 @@ class Tiny(nn.Module):
                                    stride=(1, 1),
                                    padding=(1, 1),
                                    bias=False))
-        cv_14.add_module(nn.BatchNorm2d(num_features=512, 
-                                        eps=1e-05, 
+        cv_14.add_module(nn.BatchNorm2d(num_features=512,
+                                        eps=1e-05,
                                         momentum=0.9))
         cv_14.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_14)
@@ -235,14 +235,14 @@ class Tiny(nn.Module):
                                    kernel_size=(1, 1),
                                    stride=(1, 1),
                                    bias=False))
-        cv_18.add_module(nn.BatchNorm2d(num_features=128, 
-                                        eps=1e-05, 
+        cv_18.add_module(nn.BatchNorm2d(num_features=128,
+                                        eps=1e-05,
                                         momentum=0.9))
         cv_18.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_18)
         # [ upsample ]
         up_19 = Component("upsample")
-        up_19.add_module(Upsample(scale_factor=2.0, 
+        up_19.add_module(Upsample(scale_factor=2.0,
                                   mode="nearest"))
         self.components.append(up_19)
         # [ route ]
@@ -257,8 +257,8 @@ class Tiny(nn.Module):
                                    stride=(1, 1),
                                    padding=(1, 1),
                                    bias=False))
-        cv_21.add_module(nn.BatchNorm2d(num_features=256, 
-                                        eps=1e-05, 
+        cv_21.add_module(nn.BatchNorm2d(num_features=256,
+                                        eps=1e-05,
                                         momentum=0.9))
         cv_21.add_module(nn.LeakyReLU(negative_slope=0.1))
         self.components.append(cv_21)
@@ -275,7 +275,7 @@ class Tiny(nn.Module):
                               img_size=self.img_size,
                               anchors=[(10, 14), (23, 27), (37, 58)]))
         self.components.append(yl_23)
-    
+
     def forward(self, x):
         outputs = []
         for component in self.components:
